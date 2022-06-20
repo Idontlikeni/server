@@ -4,6 +4,7 @@
 #include <QTcpSocket>
 #include <QVector>
 #include <QDataStream>
+#include <algorithms.h>
 
 class Server: public QTcpServer{
     Q_OBJECT
@@ -15,8 +16,10 @@ public:
 private:
     QVector <QTcpSocket*> Sockets;
     QByteArray Data;
-    void SendToClient(QString str);
-    quint16 nextBlockSize;
+    void SendToClient(QMap<QChar, int> d1, QMap<int, QVector<QString>> d2);
+    quint64 nextBlockSize;
+    SRepeatFinder repeatFinder;
+    LengthSorter lengthSorter;
 public slots:
     void incomingConnection(qintptr socketDescriptor);
     void slotReadyRead();

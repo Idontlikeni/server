@@ -54,11 +54,41 @@ void Server::slotReadyRead()
                 break;
             }
 
-            QString str;
+            QVector<QString> str;
             in >> str;
-            qDebug() << str;
+            //QStringList qlist = str.split('');
+            for(int i = 0; i < str.size(); i++){
+                QString line = str[i];
+                //line.chop(1);
+                repeatFinder.calc(line);
+                lengthSorter.calc(line);
+                qDebug() << line;
+            }
+            QString qs1 = "";
+            QString qs2 = "";
+            QMap<QChar, int> d1 = repeatFinder.get_qdata();
+            QMap<int, QVector<QString>> d2 = lengthSorter.get_qdata();
+
+            for( QMap<QChar, int>::iterator i = d1.begin(); i != d1.end(); i++){
+                qs1.append(i.key());
+                qs1.append(" - " + QString::number(i.value()) + "\n");
+            }
+
+            for(QMap<int, QVector<QString>>::iterator i = d2.begin(); i != d2.end(); i++){
+                int c = 0;
+                for(QString j: i.value()){
+                    if(c == 0)qs2.append(QString::number(i.key()));
+                    else qs2.append(" ");
+                    qs2.append(" - " + j + "\n");
+                    c++;
+                }
+            }
+
+            qDebug() << "Data:" << str;
+            qDebug() << "1: " << d1;
+            qDebug() << "2: " << d2;
             nextBlockSize = 0;
-            SendToClient(str);
+            SendToClient(d1, d2);
             break;
         }
     }
@@ -69,15 +99,14 @@ void Server::slotReadyRead()
 }
 
 
-void Server::SendToClient(QString str)
+void Server::SendToClient(QMap<QChar, int> d1, QMap<int, QVector<QString>> d2)
 {
     Data.clear();
     QDataStream out(&Data, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_14);
-    out << quint16(0) << str;
+    out << quint64(0) << d1 << d2;
     out.device()->seek(0);
-    out << quint16(Data.size() - sizeof(quint16));
-    out << str;
+    out << quint64(Data.size() - sizeof(quint64));
     //socket->write(Data);
     for(int i = 0; i < Sockets.size(); ++i){
         Sockets[i]->write(Data);
