@@ -12,7 +12,7 @@ Server::Server()
     }
     nextBlockSize = 0;
     db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName("./third.db");
+    db.setDatabaseName("./Requests.db");
     if(db.open()){
         qDebug("open");
     }else{
