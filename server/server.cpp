@@ -11,6 +11,16 @@ Server::Server()
         qDebug() << "error";
     }
     nextBlockSize = 0;
+    db = QSqlDatabase::addDatabase("QSQLITE");
+    db.setDatabaseName("./third.db");
+    if(db.open()){
+        qDebug("open");
+    }else{
+        qDebug("no open");
+    }
+
+    query = new QSqlQuery(db);
+    query->exec("CREATE TABLE requets ( Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, time DATETIME NOT NULL, ip TEXT NOT NULL, bytes INTEGER NOT NULL);");
 }
 
 void Server::incomingConnection(qintptr socketDescriptor)
@@ -21,14 +31,19 @@ void Server::incomingConnection(qintptr socketDescriptor)
     connect(socket, &QTcpSocket::disconnected, socket, &QTcpSocket::deleteLater);
 
     Sockets.push_back(socket);
-    qDebug() << "client connected" << socketDescriptor;
+    int i = (int)socketDescriptor;
+    qDebug() << "client connected" << socketDescriptor << " " << socket->peerAddress().toString() << " " << socket->peerPort();
 }
 
 void Server::slotReadyRead()
 {
     socket = (QTcpSocket*)sender();
+    int id = socket->socketDescriptor();
     QDataStream in(socket);
     in.setVersion(QDataStream::Qt_5_14);
+
+
+    //qDebug() << QDateTime::currentDateTime().toString("dd.MM.yyyy hh:mm:ss") << socket->peerAddress().toString();
     if(in.status() == QDataStream::Ok)
     {
         qDebug() << "read...";
@@ -36,33 +51,21 @@ void Server::slotReadyRead()
 //        in >>str;
 //        qDebug() << str;
 //        SendToClient(str.append("--------------------------"));
-        for (;;) {
-            if(nextBlockSize == 0)
-            {
-                qDebug() << "nextBlockSize == 0";
-                if(socket->bytesAvailable() < 2)
-                {
-                    qDebug() << "Data < 2, break";
-                    break;
-                }
-                in >> nextBlockSize;
-                qDebug() << "nextBlockSize = " << nextBlockSize;
-            }
-            if(socket->bytesAvailable() < nextBlockSize)
-            {
-                qDebug() << "Data not full";
-                break;
-            }
-
-            QVector<QString> str;
-            in >> str;
-            //QStringList qlist = str.split('');
-            for(int i = 0; i < str.size(); i++){
+        repeatFinder.clear();
+        lengthSorter.clear();
+        QVector<QString> str;
+        in >> str;
+        QSqlQuery query2(db);
+        QString adress = socket->peerAddress().toString().split(":")[3] + ":" + QString::number(socket->peerPort());
+        query2.exec("INSERT INTO requets (time, ip, bytes) VALUES ('" + QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss") + "', '" + adress + "', " + QString::number(sizeof(QString) * str.size()) + ");");
+        qDebug() << "asasas";
+        if(str[0] == "0"){
+            qDebug() << QDateTime::currentDateTime().toString("dd.MM.yyyy hh:mm:ss") << socket->peerAddress().toString() << sizeof(QString) * str.size();
+            for(int i = 1; i < str.size(); i++){
                 QString line = str[i];
-                //line.chop(1);
                 repeatFinder.calc(line);
                 lengthSorter.calc(line);
-                qDebug() << line;
+                //qDebug() << line;
             }
             QString qs1 = "";
             QString qs2 = "";
@@ -88,9 +91,18 @@ void Server::slotReadyRead()
             qDebug() << "1: " << d1;
             qDebug() << "2: " << d2;
             nextBlockSize = 0;
-            SendToClient(d1, d2);
-            break;
+            SendToClient(d1, d2, {}, id);
+        }else{
+            QVector<QString> qv;
+            QSqlQuery query2;
+            query2.exec("SELECT time, ip, bytes FROM requets");
+            while (query2.next()) {
+                qv.push_back("Time: " + query2.value(0).toString() + " | IP: " + query2.value(1).toString() + " | Bytes: " + query2.value(2).toString());
+                //qDebug() << name << salary;
+            }
+            SendToClient({}, {}, qv, id);
         }
+
     }
     else
     {
@@ -99,16 +111,17 @@ void Server::slotReadyRead()
 }
 
 
-void Server::SendToClient(QMap<QChar, int> d1, QMap<int, QVector<QString>> d2)
+void Server::SendToClient(QMap<QChar, int> d1, QMap<int, QVector<QString>> d2, QVector<QString> qv, int id)
 {
     Data.clear();
     QDataStream out(&Data, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_14);
-    out << quint64(0) << d1 << d2;
-    out.device()->seek(0);
-    out << quint64(Data.size() - sizeof(quint64));
+    out << d1 << d2 << qv;
     //socket->write(Data);
     for(int i = 0; i < Sockets.size(); ++i){
-        Sockets[i]->write(Data);
+        if(id == Sockets[i]->socketDescriptor()){
+            Sockets[i]->write(Data);
+            break;
+        }
     }
 }

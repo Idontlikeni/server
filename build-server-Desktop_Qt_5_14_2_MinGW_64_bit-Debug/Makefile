@@ -272,6 +272,7 @@ Makefile: ../server/server.pro ../../../Qt/Qt15.4.2/5.14.2/mingw73_64/mkspecs/wi
 		../../../Qt/Qt15.4.2/5.14.2/mingw73_64/mkspecs/features/lex.prf \
 		../server/server.pro \
 		../../../Qt/Qt15.4.2/5.14.2/mingw73_64/lib/Qt5Network.prl \
+		../../../Qt/Qt15.4.2/5.14.2/mingw73_64/lib/Qt5Sql.prl \
 		../../../Qt/Qt15.4.2/5.14.2/mingw73_64/lib/Qt5Core.prl \
 		../../../Qt/Qt15.4.2/5.14.2/mingw73_64/mkspecs/features/build_pass.prf
 	$(QMAKE) -o Makefile ..\server\server.pro -spec win32-g++ "CONFIG+=debug" "CONFIG+=qml_debug"
@@ -477,6 +478,7 @@ Makefile: ../server/server.pro ../../../Qt/Qt15.4.2/5.14.2/mingw73_64/mkspecs/wi
 ../../../Qt/Qt15.4.2/5.14.2/mingw73_64/mkspecs/features/lex.prf:
 ../server/server.pro:
 ../../../Qt/Qt15.4.2/5.14.2/mingw73_64/lib/Qt5Network.prl:
+../../../Qt/Qt15.4.2/5.14.2/mingw73_64/lib/Qt5Sql.prl:
 ../../../Qt/Qt15.4.2/5.14.2/mingw73_64/lib/Qt5Core.prl:
 ../../../Qt/Qt15.4.2/5.14.2/mingw73_64/mkspecs/features/build_pass.prf:
 qmake: FORCE
